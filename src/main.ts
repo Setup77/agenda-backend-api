@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const isProduction = process.env.NODE_ENV === 'production';
-  // ✅ Autorise explicitement le site en production et en local
+  // ✅ domaine séparer
   app.enableCors({
     origin: [
       'https://floralwhite-squirrel-871601.hostingersite.com',
