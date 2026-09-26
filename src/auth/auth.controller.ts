@@ -12,16 +12,16 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
-// ✅ Extension globale et propre du namespace express-session pour ce fichier
-// Cela indique à TypeScript que la propriété 'session' sur 'Request' possède nos clés personnalisées.
-declare module 'express-session' {
-  interface SessionData {
+// ✅ Solution ultime : Création d'une interface locale qui injecte directement la session typée.
+// Cela évite d'augmenter un module externe et passe outre le manque de @types/express-session en production.
+interface CustomSessionRequest extends Request {
+  session: {
     captcha?: {
       value: number;
       expiresAt: number;
     };
     csrfToken?: string;
-  }
+  } & Record<string, any>; // Permet de conserver la flexibilité de session
 }
 
 @Controller('auth')
@@ -31,7 +31,7 @@ export class AuthController {
   /* ===================== CAPTCHA ===================== */
 
   @Get('captcha')
-  getCaptcha(@Req() req: Request) {
+  getCaptcha(@Req() req: CustomSessionRequest) { // ✅ Utilisation du type personnalisé
     const a = Math.floor(Math.random() * 10) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
 
@@ -43,7 +43,7 @@ export class AuthController {
     return { question: `${a} + ${b} = ?` };
   }
 
-  private verifyCaptcha(input: string, req: Request) {
+  private verifyCaptcha(input: string, req: CustomSessionRequest) {
     const captcha = req.session.captcha;
 
     if (!captcha) {
@@ -67,13 +67,13 @@ export class AuthController {
   /* ===================== CSRF ===================== */
 
   @Get('csrf-token')
-  getCsrf(@Req() req: Request) {
+  getCsrf(@Req() req: CustomSessionRequest) {
     const token = randomUUID();
     req.session.csrfToken = token;
     return { csrfToken: token };
   }
 
-  private verifyCsrf(token: string, req: Request) {
+  private verifyCsrf(token: string, req: CustomSessionRequest) {
     if (!req.session.csrfToken || token !== req.session.csrfToken) {
       throw new BadRequestException('CSRF invalide');
     }
@@ -82,7 +82,7 @@ export class AuthController {
   /* ===================== REGISTER ===================== */
 
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+  async register(@Body() dto: RegisterDto, @Req() req: CustomSessionRequest) {
     this.verifyCaptcha(dto.captcha, req);
     this.verifyCsrf(dto.csrfToken, req);
 
@@ -92,7 +92,7 @@ export class AuthController {
   /* ===================== LOGIN ===================== */
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Req() req: Request) {
+  async login(@Body() dto: LoginDto, @Req() req: CustomSessionRequest) {
     this.verifyCsrf(dto.csrfToken, req);
     return this.authService.login(dto.login, dto.password);
   }
