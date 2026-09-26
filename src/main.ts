@@ -9,7 +9,7 @@ async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   app.enableCors({
-    // ✅ Explicitly set your Hostinger frontend domain in production
+    // ✅ Admin
     origin: isProduction
       ? 'https://floralwhite-squirrel-871601.hostingersite.com'
       : 'http://localhost:5173',
