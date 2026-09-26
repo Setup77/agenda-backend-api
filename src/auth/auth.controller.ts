@@ -12,6 +12,19 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+// ✅ Extend Express Request type locally to avoid missing type errors during production builds
+// ✅ Corrected local interface extension without type-override warnings
+interface RequestWithSession extends Request {
+  session: {
+    captcha?: {
+      value: number;
+      expiresAt: number;
+    };
+    csrfToken?: string;
+    [key: string]: any; // Allows custom express-session data keys cleanly
+  };
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -19,7 +32,7 @@ export class AuthController {
   /* ===================== CAPTCHA ===================== */
 
   @Get('captcha')
-  getCaptcha(@Req() req: Request) {
+  getCaptcha(@Req() req: RequestWithSession) {
     const a = Math.floor(Math.random() * 10) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
 
@@ -31,7 +44,7 @@ export class AuthController {
     return { question: `${a} + ${b} = ?` };
   }
 
-  private verifyCaptcha(input: string, req: Request) {
+  private verifyCaptcha(input: string, req: RequestWithSession) {
     const captcha = req.session.captcha;
 
     if (!captcha) {
@@ -55,13 +68,13 @@ export class AuthController {
   /* ===================== CSRF ===================== */
 
   @Get('csrf-token')
-  getCsrf(@Req() req: Request) {
+  getCsrf(@Req() req: RequestWithSession) {
     const token = randomUUID();
     req.session.csrfToken = token;
     return { csrfToken: token };
   }
 
-  private verifyCsrf(token: string, req: Request) {
+  private verifyCsrf(token: string, req: RequestWithSession) {
     if (!req.session.csrfToken || token !== req.session.csrfToken) {
       throw new BadRequestException('CSRF invalide');
     }
@@ -70,7 +83,7 @@ export class AuthController {
   /* ===================== REGISTER ===================== */
 
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+  async register(@Body() dto: RegisterDto, @Req() req: RequestWithSession) {
     this.verifyCaptcha(dto.captcha, req);
     this.verifyCsrf(dto.csrfToken, req);
 
@@ -80,7 +93,7 @@ export class AuthController {
   /* ===================== LOGIN ===================== */
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Req() req: Request) {
+  async login(@Body() dto: LoginDto, @Req() req: RequestWithSession) {
     this.verifyCsrf(dto.csrfToken, req);
     return this.authService.login(dto.login, dto.password);
   }
