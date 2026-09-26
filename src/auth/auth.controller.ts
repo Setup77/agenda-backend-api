@@ -12,6 +12,18 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+// ✅ Extension globale et propre du namespace express-session pour ce fichier
+// Cela indique à TypeScript que la propriété 'session' sur 'Request' possède nos clés personnalisées.
+declare module 'express-session' {
+  interface SessionData {
+    captcha?: {
+      value: number;
+      expiresAt: number;
+    };
+    csrfToken?: string;
+  }
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
