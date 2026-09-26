@@ -1,13 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import session from 'express-session';
+import * as session from 'express-session';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const isProduction = process.env.NODE_ENV === 'production';
-  // ✅ domaine séparer
+
   app.enableCors({
     origin: [
       'https://floralwhite-squirrel-871601.hostingersite.com',
@@ -15,24 +15,22 @@ async function bootstrap() {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'HEAD', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   });
 
-  // ✅ Production Session Configuration
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'CAPTCHA_CSRF_SECRET', // Dynamized secret
+      secret: process.env.SESSION_SECRET || 'CAPTCHA_CSRF_SECRET',
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: isProduction, // MUST be true in production for HTTPS deployment
+        secure: isProduction,
         httpOnly: true,
-        sameSite: isProduction ? 'none' : 'lax', // 'none' allows cross-domain cookies between frontend & backend Web Apps
+        sameSite: isProduction ? 'none' : 'lax',
       },
     }),
   );
 
-  // ✅ Global DTO Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -41,9 +39,10 @@ async function bootstrap() {
     }),
   );
 
-  // ✅ Hostinger requires listening on process.env.PORT
   const port = process.env.PORT || 3000;
+
   await app.listen(port);
+
   console.log(`Application is running on port: ${port}`);
 }
 
