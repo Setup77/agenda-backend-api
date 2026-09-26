@@ -12,17 +12,6 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
-// ✅ Clean Solution: Extend the SessionData interface of express-session globally within this file
-declare module 'express-session' {
-  interface SessionData {
-    captcha?: {
-      value: number;
-      expiresAt: number;
-    };
-    csrfToken?: string;
-  }
-}
-
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -30,11 +19,10 @@ export class AuthController {
   /* ===================== CAPTCHA ===================== */
 
   @Get('captcha')
-  getCaptcha(@Req() req: Request) { // Uses native Request cleanly now!
+  getCaptcha(@Req() req: Request) {
     const a = Math.floor(Math.random() * 10) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
 
-    // ✅ Adapted solution mapping your math calculation logic
     req.session.captcha = {
       value: a + b,
       expiresAt: Date.now() + 2 * 60 * 1000, // ⏱ 2 minutes
@@ -56,11 +44,11 @@ export class AuthController {
     }
 
     if (Number(input) !== captcha.value) {
-      req.session.captcha = undefined; // 🔥 Single-use usage
+      req.session.captcha = undefined; // 🔥 usage unique
       throw new BadRequestException('Captcha incorrect');
     }
 
-    // ✅ Success → destroy token
+    // ✅ Succès → on détruit
     req.session.captcha = undefined;
   }
 
